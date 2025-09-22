@@ -361,6 +361,167 @@ textarea.form-control {
   font-family: inherit;
 }
 
+/* Milestone Form Styles */
+.milestone-form-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Submission Form Styles */
+.new-submission-form {
+  background-color: var(--white);
+  border: 1px solid var(--medium-gray);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  box-shadow: var(--box-shadow);
+  margin-bottom: 2rem;
+}
+
+.milestone-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--medium-gray);
+  gap: 1rem;
+}
+
+.milestone-form-title {
+  flex: 1;
+}
+
+.milestone-form-title .milestone-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--dark-gray);
+  margin: 0 0 0.5rem 0;
+}
+
+.milestone-form-description {
+  margin-bottom: 2rem;
+}
+
+.milestone-form-description p {
+  color: var(--dark-gray);
+  line-height: 1.6;
+  margin: 0;
+  font-size: var(--font-size-base);
+}
+
+/* File Upload Styles */
+.upload-section {
+  margin-bottom: 2rem;
+}
+
+.upload-box {
+  position: relative;
+  border: 2px dashed var(--medium-gray);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  text-align: center;
+  background-color: var(--white);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-box:hover {
+  border-color: var(--primary-blue);
+  background-color: var(--primary-blue-light);
+}
+
+.file-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+}
+
+.file-label {
+  display: block;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-text {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--dark-gray);
+  margin-bottom: 0.5rem;
+}
+
+.upload-hint {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--secondary-gray);
+}
+
+/* Upload Button Styles */
+.upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--medium-gray);
+}
+
+/* Completion Message Styles */
+.completion-message {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.completion-card {
+  background-color: var(--white);
+  border: 1px solid var(--medium-gray);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  box-shadow: var(--box-shadow);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.completion-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.completion-icon .icon-lg {
+  width: 64px;
+  height: 64px;
+  color: var(--success-green);
+}
+
+.completion-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--dark-gray);
+  margin: 0 0 1rem 0;
+}
+
+.completion-text {
+  color: var(--secondary-gray);
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
 /* Tables / Lists */
 .table {
   width: 100%;

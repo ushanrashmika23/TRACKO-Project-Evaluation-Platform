@@ -289,6 +289,15 @@ $milestones_result->close();
                                 </h4>
                             </div>
                             <div class="milestone-form-meta">
+                                <?php
+                                // Check if milestone is overdue or active
+                                $current_date = date('Y-m-d');
+                                $due_date = $next_milestone['milestone_due_date'];
+                                $is_overdue = strtotime($due_date) < strtotime($current_date);
+                                ?>
+                                <span class="badge badge-<?php echo $is_overdue ? 'overdue' : 'in-progress'; ?>">
+                                    <?php echo $is_overdue ? 'Overdue' : 'Active'; ?>
+                                </span>
                                 <span class="due-date">Due:
                                     <?php echo date('M j, Y', strtotime($next_milestone['milestone_due_date'])); ?></span>
                             </div>
@@ -297,7 +306,7 @@ $milestones_result->close();
                             <p><?php echo htmlspecialchars($next_milestone['milestone_description'] ?? 'Submit your work for this milestone.'); ?>
                             </p>
                         </div>
-                        <hr class="form-divider">
+                        <!-- <hr class="form-divider"> -->
                         <div class="upload-section">
                             <div class="upload-box">
                                 <input type="file" name="submission_file" id="submission-file" class="file-input"
@@ -308,13 +317,13 @@ $milestones_result->close();
                                 </label>
                             </div>
                         </div>
-                        <hr class="form-divider">
+                        <!-- <hr class="form-divider"> -->
                         <div class="form-group">
                             <label for="submission_notes" class="form-label">Submission Notes (Optional)</label>
                             <textarea name="submission_notes" id="submission_notes" class="form-control" rows="3"
                                 placeholder="Add any notes about your submission..."></textarea>
                         </div>
-                        <hr class="form-divider">
+                        <!-- <hr class="form-divider"> -->
                         <div class="form-actions">
                             <button type="submit" name="submit_submission" class="btn btn-primary btn-md upload-btn">
                                 <i data-lucide="upload" class="icon-sm"></i>
@@ -534,7 +543,7 @@ $milestones_result->close();
         selectedFile = null;
         fileInput.value = '';
         uploadText.textContent = 'Choose file or drag and drop';
-        uploadHint.textContent = 'PDF, DOC, DOCX, ZIP, TXT, JPG, PNG (Max: 10MB)';
+        uploadHint.textContent = 'PDF, DOC, DOCX, ZIP, TXT, JPG, PNG (Max: 50MB)';
         uploadBtn.textContent = 'Upload Submission';
         uploadBtn.innerHTML = '<i data-lucide="upload" class="icon-sm"></i> Upload Submission';
         lucide.createIcons();
