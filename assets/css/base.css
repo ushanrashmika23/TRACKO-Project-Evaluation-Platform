@@ -1,4 +1,4 @@
-/* TRACKO Base Styles - Common Styles Inspired by BambooHR */
+/* TRACKO Base Styles - Common Styles */
 
 /* CSS Variables for Theme */
 :root {
@@ -68,6 +68,9 @@ a {
 a:hover {
   color: var(--primary-blue-hover);
 }
+th{
+  text-align: left;
+}
 
 /* Layout Utilities */
 .container {
@@ -93,6 +96,14 @@ a:hover {
 
 .justify-content-between {
   justify-content: space-between;
+}
+
+.justify-content-around {
+  justify-content: space-around;
+}
+
+.justify-content-center {
+  justify-content: space-center;
 }
 
 .align-items-center {

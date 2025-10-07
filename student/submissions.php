@@ -208,11 +208,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get all milestones for display (existing logic)
-$milestones_query = "SELECT * FROM milestones ORDER BY milestone_id DESC";
+// Get all milestones for display 
+$milestones_query = "SELECT * FROM milestones ORDER BY milestone_due_date ASC";
 $milestones_result = $conn->query($milestones_query);
 
-// Get submissions data for current student (existing logic)
+// Get submissions data for current student
 $submissions_query = "
     SELECT
         u.user_id AS student_id,
@@ -498,56 +498,61 @@ $milestones_result->close();
         }, 3000);
     }
 
-    // File upload handling
-    const fileInput = document.getElementById('submission-file');
-    const fileLabel = document.querySelector('.file-label');
-    const uploadText = document.querySelector('.upload-text');
-    const uploadHint = document.querySelector('.upload-hint');
-    const uploadBtn = document.querySelector('.upload-btn');
+    // File upload handling - wait for DOM to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileInput = document.getElementById('submission-file');
+        const fileLabel = document.querySelector('.file-label');
+        const uploadText = document.querySelector('.upload-text');
+        const uploadHint = document.querySelector('.upload-hint');
+        const uploadBtn = document.querySelector('.upload-btn');
 
-    let selectedFile = null;
+        let selectedFile = null;
 
-    fileInput.addEventListener('change', function (e) {
-        const file = e.target.files[0];
-        if (file) {
-            // Validate file size (10MB)
-            const maxSize = 50 * 1024 * 1024;
-            if (file.size > maxSize) {
-                alert('File size too large. Maximum size: 10MB.');
-                resetFileInput();
-                return;
-            }
+        if (fileInput) {
+            fileInput.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Validate file size (50MB)
+                    const maxSize = 50 * 1024 * 1024;
+                    if (file.size > maxSize) {
+                        alert('File size too large. Maximum size: 50MB.');
+                        resetFileInput();
+                        return;
+                    }
 
-            // Validate file type
-            const allowedTypes = ['pdf', 'doc', 'docx', 'zip', 'txt', 'jpg', 'jpeg', 'png'];
-            const fileExtension = file.name.split('.').pop().toLowerCase();
-            if (!allowedTypes.includes(fileExtension)) {
-                alert('Invalid file type. Allowed types: PDF, DOC, DOCX, ZIP, TXT, JPG, PNG.');
-                resetFileInput();
-                return;
-            }
+                    // Validate file type
+                    const allowedTypes = ['pdf', 'doc', 'docx', 'zip', 'txt', 'jpg', 'jpeg', 'png'];
+                    const fileExtension = file.name.split('.').pop().toLowerCase();
+                    if (!allowedTypes.includes(fileExtension)) {
+                        alert('Invalid file type. Allowed types: PDF, DOC, DOCX, ZIP, TXT, JPG, PNG.');
+                        resetFileInput();
+                        return;
+                    }
 
-            // Update UI
-            selectedFile = file;
-            uploadText.textContent = file.name;
-            uploadHint.textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
-            uploadBtn.textContent = 'Upload Submission';
-            uploadBtn.innerHTML = '<i data-lucide="upload" class="icon-sm"></i> Upload Submission';
-            lucide.createIcons();
-        } else {
-            resetFileInput();
+                    // Update UI
+                    selectedFile = file;
+                    if (uploadText) uploadText.textContent = file.name;
+                    if (uploadHint) uploadHint.textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                    if (uploadBtn) {
+                        uploadBtn.innerHTML = '<i data-lucide="upload" class="icon-sm"></i> Upload Submission';
+                        lucide.createIcons();
+                    }
+                } else {
+                    resetFileInput();
+                }
+            });
         }
-    });
 
-    function resetFileInput() {
-        selectedFile = null;
-        fileInput.value = '';
-        uploadText.textContent = 'Choose file or drag and drop';
-        uploadHint.textContent = 'PDF, DOC, DOCX, ZIP, TXT, JPG, PNG (Max: 50MB)';
-        uploadBtn.textContent = 'Upload Submission';
-        uploadBtn.innerHTML = '<i data-lucide="upload" class="icon-sm"></i> Upload Submission';
-        lucide.createIcons();
-    }
+        function resetFileInput() {
+            selectedFile = null;
+            if (fileInput) fileInput.value = '';
+            if (uploadText) uploadText.textContent = 'Choose file or drag and drop';
+            if (uploadHint) uploadHint.textContent = 'PDF, DOC, DOCX, ZIP, TXT, JPG, PNG (Max: 50MB)';
+            if (uploadBtn) {
+                uploadBtn.innerHTML = '<i data-lucide="upload" class="icon-sm"></i> Upload Submission';
+                lucide.createIcons();
+            }
+        }
 
     // Upload button click handler - removed since we now use form submission
     // uploadBtn.addEventListener('click', function () {
@@ -560,30 +565,34 @@ $milestones_result->close();
     //     alert('File "' + selectedFile.name + '" would be uploaded here.');
     // });
 
-    // Drag and drop functionality
-    const uploadBox = document.querySelector('.upload-box');
+        // Drag and drop functionality
+        const uploadBox = document.querySelector('.upload-box');
+        if (uploadBox) {
+            uploadBox.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                uploadBox.style.borderColor = 'var(--primary-blue)';
+                uploadBox.style.backgroundColor = 'var(--primary-blue-light)';
+            });
 
-    uploadBox.addEventListener('dragover', function (e) {
-        e.preventDefault();
-        uploadBox.style.borderColor = 'var(--primary-blue)';
-        uploadBox.style.backgroundColor = 'var(--primary-blue-light)';
-    });
+            uploadBox.addEventListener('dragleave', function (e) {
+                e.preventDefault();
+                uploadBox.style.borderColor = 'var(--medium-gray)';
+                uploadBox.style.backgroundColor = 'var(--white)';
+            });
 
-    uploadBox.addEventListener('dragleave', function (e) {
-        e.preventDefault();
-        uploadBox.style.borderColor = 'var(--medium-gray)';
-        uploadBox.style.backgroundColor = 'var(--white)';
-    });
+            uploadBox.addEventListener('drop', function (e) {
+                e.preventDefault();
+                uploadBox.style.borderColor = 'var(--medium-gray)';
+                uploadBox.style.backgroundColor = 'var(--white)';
 
-    uploadBox.addEventListener('drop', function (e) {
-        e.preventDefault();
-        uploadBox.style.borderColor = 'var(--medium-gray)';
-        uploadBox.style.backgroundColor = 'var(--white)';
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            fileInput.files = files;
-            fileInput.dispatchEvent(new Event('change'));
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    if (fileInput) {
+                        fileInput.files = files;
+                        fileInput.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
         }
     });
 

@@ -45,8 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_project'])) {
         $check_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=projects');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=projects";</script>';
     exit();
 }
 
@@ -90,12 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_project'])) {
         $check_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=projects');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=projects";</script>';
     exit();
-}
-
-// Handle project deletion
+}// Handle project deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_project'])) {
     $project_id = $_POST['project_id'] ?? 0;
 
@@ -133,10 +131,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_project'])) {
         $check_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=projects');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=projects";</script>';
     exit();
 }
+
+// Get filter parameters
+$filter_status = $_GET['status'] ?? '';
+$filter_student = $_GET['student'] ?? '';
+$filter_supervisor = $_GET['supervisor'] ?? '';
+
+// Build query with filters
+$query_parts = [];
+$params = [];
+$types = '';
+
+if (!empty($filter_status)) {
+    $query_parts[] = "p.project_status = ?";
+    $params[] = $filter_status;
+    $types .= 's';
+}
+
+if (!empty($filter_student)) {
+    $query_parts[] = "p.project_student_id = ?";
+    $params[] = $filter_student;
+    $types .= 'i';
+}
+
+if (!empty($filter_supervisor)) {
+    $query_parts[] = "p.project_supervisor_id = ?";
+    $params[] = $filter_supervisor;
+    $types .= 'i';
+}
+
+$where_clause = !empty($query_parts) ? "WHERE " . implode(" AND ", $query_parts) : "";
 
 // Get all projects with user details
 $projects_query = "SELECT
@@ -159,9 +187,17 @@ $projects_query = "SELECT
 FROM projects p
 JOIN users stu ON p.project_student_id = stu.user_id
 LEFT JOIN users sup ON p.project_supervisor_id = sup.user_id
+$where_clause
 ORDER BY p.project_created_at DESC";
 
-$projects_result = $conn->query($projects_query);
+if (!empty($params)) {
+    $projects_stmt = $conn->prepare($projects_query);
+    $projects_stmt->bind_param($types, ...$params);
+    $projects_stmt->execute();
+    $projects_result = $projects_stmt->get_result();
+} else {
+    $projects_result = $conn->query($projects_query);
+}
 
 // Get students and supervisors for dropdowns
 $students_query = "SELECT user_id, user_name, user_email FROM users WHERE user_role = 'student' ORDER BY user_name";
@@ -169,6 +205,16 @@ $students_result = $conn->query($students_query);
 
 $supervisors_query = "SELECT user_id, user_name, user_email FROM users WHERE user_role = 'supervisor' ORDER BY user_name";
 $supervisors_result = $conn->query($supervisors_query);
+
+// Get project statistics
+$project_stats_query = "SELECT
+    COUNT(CASE WHEN project_status = 'pending' THEN 1 END) as total_pending,
+    COUNT(CASE WHEN project_status = 'in_progress' THEN 1 END) as total_in_progress,
+    COUNT(CASE WHEN project_status = 'completed' THEN 1 END) as total_completed,
+    COUNT(*) as total_projects
+    FROM projects";
+$project_stats_result = $conn->query($project_stats_query);
+$project_stats = $project_stats_result->fetch_assoc();
 
 // Display success/error messages
 if (isset($_SESSION['success'])) {
@@ -186,10 +232,118 @@ if (isset($_SESSION['error'])) {
     <p>Oversee all projects and assignments in the system.</p>
 </div>
 
+<!-- Project Statistics -->
+<div class="row dashboard-stats-wrapper" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="folder-open" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $project_stats['total_projects']; ?></h4>
+            <p>Total Projects</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="clock" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $project_stats['total_pending']; ?></h4>
+            <p>Pending</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="play-circle" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $project_stats['total_in_progress']; ?></h4>
+            <p>In Progress</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="check-circle" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $project_stats['total_completed']; ?></h4>
+            <p>Completed</p>
+        </div>
+    </div>
+</div>
+
+<!-- Project Filters -->
+<div class="filters-section">
+    <form method="GET" action="layout.php" class="filters-form">
+        <input type="hidden" name="page" value="projects">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="status" class="filter-label">Filter by Status</label>
+                <select name="status" id="status" class="filter-select">
+                    <option value="">All Statuses</option>
+                    <option value="pending" <?php echo ($filter_status === 'pending') ? 'selected' : ''; ?>>Pending</option>
+                    <option value="in_progress" <?php echo ($filter_status === 'in_progress') ? 'selected' : ''; ?>>In Progress</option>
+                    <option value="completed" <?php echo ($filter_status === 'completed') ? 'selected' : ''; ?>>Completed</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="student" class="filter-label">Filter by Student</label>
+                <select name="student" id="student" class="filter-select">
+                    <option value="">All Students</option>
+                    <?php
+                    $students_result->data_seek(0); // Reset result pointer
+                    while ($student = $students_result->fetch_assoc()):
+                    ?>
+                        <option value="<?php echo $student['user_id']; ?>" <?php echo ($filter_student == $student['user_id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($student['user_name']); ?> (<?php echo htmlspecialchars($student['user_email']); ?>)
+                        </option>
+                    <?php endwhile; ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="supervisor" class="filter-label">Filter by Supervisor</label>
+                <select name="supervisor" id="supervisor" class="filter-select">
+                    <option value="">All Supervisors</option>
+                    <?php
+                    $supervisors_result->data_seek(0); // Reset result pointer
+                    while ($supervisor = $supervisors_result->fetch_assoc()):
+                    ?>
+                        <option value="<?php echo $supervisor['user_id']; ?>" <?php echo ($filter_supervisor == $supervisor['user_id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($supervisor['user_name']); ?> (<?php echo htmlspecialchars($supervisor['user_email']); ?>)
+                        </option>
+                    <?php endwhile; ?>
+                </select>
+            </div>
+            <div class="filter-group">
+                <button type="submit" class="btn btn-primary btn-sm" style="align-self: end;">
+                    <i data-lucide="filter" class="icon-sm"></i>
+                    Apply Filters
+                </button>
+                <?php if (!empty($filter_status) || !empty($filter_student) || !empty($filter_supervisor)): ?>
+                    <a href="layout.php?page=projects" class="btn btn-outline btn-sm" style="align-self: end; margin-left: 0.5rem;">
+                        <i data-lucide="x" class="icon-sm"></i>
+                        Clear
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </form>
+</div>
+
 <!-- Projects Table -->
 <div class="card">
     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>All Projects</h3>
+        <h3>All Projects <?php
+            $project_count = $projects_result->num_rows;
+            if (!empty($filter_status) || !empty($filter_student) || !empty($filter_supervisor)) {
+                echo "<small class='text-muted'>($project_count filtered)</small>";
+            } else {
+                echo "<small class='text-muted'>($project_count total)</small>";
+            }
+        ?></h3>
         <button class="btn btn-primary btn-md" onclick="toggleAddProjectForm()">
             <i data-lucide="folder-plus" class="icon-sm"></i>
             Add New Project

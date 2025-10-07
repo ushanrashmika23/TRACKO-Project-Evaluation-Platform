@@ -60,17 +60,24 @@ $current_page = $_GET['page'] ?? 'dashboard';
                     </a>
                 </li>
                 <li class="sidebar-menu-item">
-                    <a href="#" data-page="reports"
-                        class="sidebar-link <?php echo $current_page === 'reports' ? 'active' : ''; ?>">
-                        <i data-lucide="bar-chart-3" class="sidebar-icon"></i>
-                        <span class="sidebar-text">Reports</span>
+                    <a href="#" data-page="milestones"
+                        class="sidebar-link <?php echo $current_page === 'milestones' ? 'active' : ''; ?>">
+                        <i data-lucide="target" class="sidebar-icon"></i>
+                        <span class="sidebar-text">Milestones</span>
                     </a>
                 </li>
                 <li class="sidebar-menu-item">
-                    <a href="#" data-page="settings"
-                        class="sidebar-link <?php echo $current_page === 'settings' ? 'active' : ''; ?>">
-                        <i data-lucide="settings" class="sidebar-icon"></i>
-                        <span class="sidebar-text">Settings</span>
+                    <a href="#" data-page="submissions"
+                        class="sidebar-link <?php echo $current_page === 'submissions' ? 'active' : ''; ?>">
+                        <i data-lucide="file-text" class="sidebar-icon"></i>
+                        <span class="sidebar-text">Submissions</span>
+                    </a>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a href="#" data-page="profile"
+                        class="sidebar-link <?php echo $current_page === 'profile' ? 'active' : ''; ?>">
+                        <i data-lucide="user" class="sidebar-icon"></i>
+                        <span class="sidebar-text">Profile</span>
                     </a>
                 </li>
             </ul>
@@ -98,8 +105,9 @@ $current_page = $_GET['page'] ?? 'dashboard';
                         'dashboard' => 'Dashboard',
                         'users' => 'Users',
                         'projects' => 'Projects',
-                        'reports' => 'Reports',
-                        'settings' => 'Settings'
+                        'milestones' => 'Milestones',
+                        'submissions' => 'Submissions',
+                        'profile' => 'Profile'
                     ];
                     echo $page_titles[$current_page] ?? 'Admin Portal';
                     ?>
@@ -121,7 +129,7 @@ $current_page = $_GET['page'] ?? 'dashboard';
             <div class="content-container">
                 <?php
                 // Include the appropriate page content
-                $allowed_pages = ['dashboard', 'users', 'projects', 'reports', 'settings'];
+                $allowed_pages = ['dashboard', 'users', 'projects', 'milestones', 'submissions', 'profile'];
                 if (in_array($current_page, $allowed_pages)) {
                     $page_file = $current_page . '.php';
                     if (file_exists($page_file)) {
@@ -207,8 +215,9 @@ $current_page = $_GET['page'] ?? 'dashboard';
                         'dashboard': 'Dashboard',
                         'users': 'Users',
                         'projects': 'Projects',
-                        'reports': 'Reports',
-                        'settings': 'Settings'
+                        'milestones': 'Milestones',
+                        'submissions': 'Submissions',
+                        'profile': 'Profile'
                     };
                     document.getElementById('navbar-title').textContent = titles[page] || 'Admin Portal';
                     // Reinitialize Lucide icons

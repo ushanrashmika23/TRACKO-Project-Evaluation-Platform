@@ -7,7 +7,7 @@ require_once '../includes/db.php';
 
 // Handle user creation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
-    $user_name = trim($_POST['user_name'] ?? '');
+    $user_name = trim(string: $_POST['user_name'] ?? '');
     $user_email = trim($_POST['user_email'] ?? '');
     $user_password = $_POST['user_password'] ?? '';
     $user_role = $_POST['user_role'] ?? '';
@@ -49,8 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
         $check_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=users');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=users";</script>';
     exit();
 }
 
@@ -94,8 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
         $check_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=users');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=users";</script>';
     exit();
 }
 
@@ -137,14 +137,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
         $check_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=users');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=users";</script>';
     exit();
 }
 
-// Get all users
-$users_query = "SELECT user_id, user_name, user_email, user_role FROM users ORDER BY user_id DESC";
-$users_result = $conn->query($users_query);
+// Get filter parameters
+$role_filter = $_GET['role'] ?? '';
+$search_filter = trim($_GET['search'] ?? '');
+
+// Build query with filters
+$query_parts = [];
+$params = [];
+$types = '';
+
+if (!empty($role_filter)) {
+    $query_parts[] = "user_role = ?";
+    $params[] = $role_filter;
+    $types .= 's';
+}
+
+if (!empty($search_filter)) {
+    $query_parts[] = "(user_name LIKE ? OR user_email LIKE ?)";
+    $params[] = "%$search_filter%";
+    $params[] = "%$search_filter%";
+    $types .= 'ss';
+}
+
+$where_clause = !empty($query_parts) ? "WHERE " . implode(" AND ", $query_parts) : "";
+
+// Get all users with filters
+$users_query = "SELECT user_id, user_name, user_email, user_role FROM users $where_clause ORDER BY user_id DESC";
+
+if (!empty($params)) {
+    $users_stmt = $conn->prepare($users_query);
+    $users_stmt->bind_param($types, ...$params);
+    $users_stmt->execute();
+    $users_result = $users_stmt->get_result();
+} else {
+    $users_result = $conn->query($users_query);
+}
+
+// Get user statistics
+$user_stats_query = "SELECT
+    COUNT(CASE WHEN user_role = 'admin' THEN 1 END) as total_admins,
+    COUNT(CASE WHEN user_role = 'supervisor' THEN 1 END) as total_supervisors,
+    COUNT(CASE WHEN user_role = 'student' THEN 1 END) as total_students,
+    COUNT(*) as total_users
+    FROM users";
+$user_stats_result = $conn->query($user_stats_query);
+$user_stats = $user_stats_result->fetch_assoc();
 
 // Display success/error messages
 if (isset($_SESSION['success'])) {
@@ -162,12 +204,94 @@ if (isset($_SESSION['error'])) {
     <p>Manage students, supervisors, and administrators in the system.</p>
 </div>
 
+<!-- User Statistics -->
+<div class="row dashboard-stats-wrapper" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="users" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $user_stats['total_users']; ?></h4>
+            <p>Total Users</p>
+        </div>
+    </div>
 
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="user-check" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $user_stats['total_students']; ?></h4>
+            <p>Students</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="user-cog" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $user_stats['total_supervisors']; ?></h4>
+            <p>Supervisors</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="shield" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $user_stats['total_admins']; ?></h4>
+            <p>Admins</p>
+        </div>
+    </div>
+</div>
+
+<!-- User Filters -->
+<div class="filters-section">
+    <form method="GET" action="" class="filters-form">
+        <input type="hidden" name="page" value="users">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="role" class="filter-label">Filter by Role</label>
+                <select name="role" id="role" class="filter-select">
+                    <option value="">All Roles</option>
+                    <option value="admin" <?php echo ($role_filter === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                    <option value="supervisor" <?php echo ($role_filter === 'supervisor') ? 'selected' : ''; ?>>Supervisor</option>
+                    <option value="student" <?php echo ($role_filter === 'student') ? 'selected' : ''; ?>>Student</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="search" class="filter-label">Search by Name or Email</label>
+                <input type="text" name="search" id="search" value="<?php echo htmlspecialchars($search_filter); ?>" placeholder="Search users..." class="filter-select">
+            </div>
+            <div class="filter-group">
+                <button type="submit" class="btn btn-primary btn-sm" style="align-self: end;">
+                    <i data-lucide="filter" class="icon-sm"></i>
+                    Apply Filters
+                </button>
+                <?php if (!empty($role_filter) || !empty($search_filter)): ?>
+                    <a href="layout.php?page=users" class="btn btn-outline btn-sm" style="align-self: end; margin-left: 0.5rem;">
+                        <i data-lucide="x" class="icon-sm"></i>
+                        Clear
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </form>
+</div>
 
 <!-- Users Table -->
 <div class="card">
     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>All Users</h3>
+        <h3>All Users <?php
+            $user_count = $users_result->num_rows;
+            if (!empty($role_filter) || !empty($search_filter)) {
+                echo "<small class='text-muted'>($user_count filtered)</small>";
+            } else {
+                echo "<small class='text-muted'>($user_count total)</small>";
+            }
+        ?></h3>
         <button class="btn btn-primary btn-md" onclick="toggleAddUserForm()">
             <i data-lucide="user-plus" class="icon-sm"></i>
             Add New User

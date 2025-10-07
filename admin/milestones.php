@@ -9,22 +9,19 @@ require_once '../includes/db.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_milestone'])) {
     $milestone_title = trim($_POST['milestone_title'] ?? '');
     $milestone_description = trim($_POST['milestone_description'] ?? '');
-    $milestone_project_id = $_POST['milestone_project_id'] ?? '';
     $milestone_due_date = $_POST['milestone_due_date'] ?? '';
 
     // Validate input
-    if (empty($milestone_title) || empty($milestone_description) || empty($milestone_project_id) || empty($milestone_due_date)) {
+    if (empty($milestone_title) || empty($milestone_description) || empty($milestone_due_date)) {
         $_SESSION['error'] = 'All fields are required.';
-    } elseif (!is_numeric($milestone_project_id)) {
-        $_SESSION['error'] = 'Invalid project selected.';
     } elseif (strtotime($milestone_due_date) < time()) {
         $_SESSION['error'] = 'Due date cannot be in the past.';
     } else {
         // Insert milestone
-        $insert_query = "INSERT INTO milestones (milestone_title, milestone_description, milestone_project_id, milestone_due_date)
-                        VALUES (?, ?, ?, ?)";
+        $insert_query = "INSERT INTO milestones (milestone_title, milestone_description, milestone_due_date)
+                        VALUES (?, ?, ?)";
         $insert_stmt = $conn->prepare($insert_query);
-        $insert_stmt->bind_param("ssis", $milestone_title, $milestone_description, $milestone_project_id, $milestone_due_date);
+        $insert_stmt->bind_param("sss", $milestone_title, $milestone_description, $milestone_due_date);
 
         if ($insert_stmt->execute()) {
             $_SESSION['success'] = 'Milestone created successfully!';
@@ -34,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_milestone'])) 
         $insert_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=reports');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=milestones";</script>';
     exit();
 }
 
@@ -44,21 +41,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_milestone'])) 
     $milestone_id = $_POST['milestone_id'] ?? 0;
     $milestone_title = trim($_POST['milestone_title'] ?? '');
     $milestone_description = trim($_POST['milestone_description'] ?? '');
-    $milestone_project_id = $_POST['milestone_project_id'] ?? '';
     $milestone_due_date = $_POST['milestone_due_date'] ?? '';
 
     // Validate input
-    if (empty($milestone_title) || empty($milestone_description) || empty($milestone_project_id) || empty($milestone_due_date) || !is_numeric($milestone_id)) {
+    if (empty($milestone_title) || empty($milestone_description) || empty($milestone_due_date) || !is_numeric($milestone_id)) {
         $_SESSION['error'] = 'All fields are required.';
-    } elseif (!is_numeric($milestone_project_id)) {
-        $_SESSION['error'] = 'Invalid project selected.';
     } elseif (strtotime($milestone_due_date) < time()) {
         $_SESSION['error'] = 'Due date cannot be in the past.';
     } else {
         // Update milestone
-        $update_query = "UPDATE milestones SET milestone_title = ?, milestone_description = ?, milestone_project_id = ?, milestone_due_date = ? WHERE milestone_id = ?";
+        $update_query = "UPDATE milestones SET milestone_title = ?, milestone_description = ?, milestone_due_date = ? WHERE milestone_id = ?";
         $update_stmt = $conn->prepare($update_query);
-        $update_stmt->bind_param("ssisi", $milestone_title, $milestone_description, $milestone_project_id, $milestone_due_date, $milestone_id);
+        $update_stmt->bind_param("sssi", $milestone_title, $milestone_description, $milestone_due_date, $milestone_id);
 
         if ($update_stmt->execute()) {
             $_SESSION['success'] = 'Milestone updated successfully!';
@@ -68,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_milestone'])) 
         $update_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=reports');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=milestones";</script>';
     exit();
 }
 
@@ -105,8 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_milestone'])) 
         $check_stmt->close();
     }
 
-    // Redirect to refresh the page
-    header('Location: layout.php?page=reports');
+    // Redirect to refresh the page using JavaScript
+    echo '<script>window.location.href = "layout.php?page=milestones";</script>';
     exit();
 }
 
@@ -115,9 +109,20 @@ $milestones_query = "SELECT milestone_id, milestone_title, milestone_description
                     FROM milestones ORDER BY milestone_created_at DESC";
 $milestones_result = $conn->query($milestones_query);
 
-// Get projects for dropdown
-$projects_query = "SELECT project_id, project_title FROM projects ORDER BY project_title";
-$projects_result = $conn->query($projects_query);
+// Get milestone statistics
+$milestone_stats_query = "SELECT COUNT(*) as total_milestones FROM milestones";
+$milestone_stats_result = $conn->query($milestone_stats_query);
+$milestone_stats = $milestone_stats_result->fetch_assoc();
+
+// Get upcoming milestones (next 7 days)
+$upcoming_query = "SELECT COUNT(*) as upcoming_milestones FROM milestones WHERE milestone_due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
+$upcoming_result = $conn->query($upcoming_query);
+$upcoming_stats = $upcoming_result->fetch_assoc();
+
+// Get overdue milestones
+$overdue_query = "SELECT COUNT(*) as overdue_milestones FROM milestones WHERE milestone_due_date < CURDATE()";
+$overdue_result = $conn->query($overdue_query);
+$overdue_stats = $overdue_result->fetch_assoc();
 
 // Display success/error messages
 if (isset($_SESSION['success'])) {
@@ -133,6 +138,49 @@ if (isset($_SESSION['error'])) {
 <div class="welcome-section">
     <h2>Milestones Management</h2>
     <p>Manage project milestones and deadlines.</p>
+</div>
+
+<!-- Milestone Statistics -->
+<div class="row dashboard-stats-wrapper" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="target" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $milestone_stats['total_milestones']; ?></h4>
+            <p>Total Milestones</p>
+        </div>
+    </div>
+
+    <!-- <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="calendar" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php //echo $upcoming_stats['upcoming_milestones']; ?></h4>
+            <p>Due This Week</p>
+        </div>
+    </div> -->
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="alert-triangle" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $overdue_stats['overdue_milestones']; ?></h4>
+            <p>Overdue</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="activity" class="stat-icon-svg"></i>
+        </div>
+        <div class="stat-content">
+            <h4><?php echo $milestone_stats['total_milestones'] - $overdue_stats['overdue_milestones']; ?></h4>
+            <p>Active</p>
+        </div>
+    </div>
 </div>
 
 <!-- Milestones Table -->
@@ -154,17 +202,6 @@ if (isset($_SESSION['error'])) {
                     <div class="form-group">
                         <label class="form-label">Milestone Title</label>
                         <input type="text" name="milestone_title" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Project</label>
-                        <select name="milestone_project_id" class="form-control" required>
-                            <option value="">Select Project</option>
-                            <?php while ($project = $projects_result->fetch_assoc()): ?>
-                                <option value="<?php echo $project['project_id']; ?>">
-                                    <?php echo htmlspecialchars($project['project_title']); ?> (ID: <?php echo $project['project_id']; ?>)
-                                </option>
-                            <?php endwhile; ?>
-                        </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Due Date</label>
@@ -248,20 +285,6 @@ if (isset($_SESSION['error'])) {
                                             <div class="form-group">
                                                 <label class="form-label">Milestone Title</label>
                                                 <input type="text" name="milestone_title" class="form-control" value="<?php echo htmlspecialchars($milestone['milestone_title']); ?>" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <label class="form-label">Project</label>
-                                                <select name="milestone_project_id" class="form-control" required>
-                                                    <option value="">Select Project</option>
-                                                    <?php
-                                                    $projects_result->data_seek(0); // Reset result pointer
-                                                    while ($project = $projects_result->fetch_assoc()):
-                                                    ?>
-                                                        <option value="<?php echo $project['project_id']; ?>" <?php echo ($project['project_id'] == $milestone['milestone_project_id']) ? 'selected' : ''; ?>>
-                                                            <?php echo htmlspecialchars($project['project_title']); ?> (ID: <?php echo $project['project_id']; ?>)
-                                                        </option>
-                                                    <?php endwhile; ?>
-                                                </select>
                                             </div>
                                             <div class="form-group">
                                                 <label class="form-label">Due Date</label>
